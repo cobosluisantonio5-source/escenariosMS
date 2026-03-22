@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador de Escenarios — Mealstar</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; padding: 2rem; color: #1a1a1a; }
+  .wrap { max-width: 700px; margin: 0 auto; padding: 1rem 0; }
+  h1 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #888; margin-bottom: 2rem; }
+  .section-title { font-size: 11px; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 14px; }
+  .global-bar { display: flex; align-items: center; gap: 12px; background: #efefed; border-radius: 8px; padding: 10px 14px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .global-bar label { font-size: 12px; color: #666; white-space: nowrap; }
+  .global-bar input[type=number] { width: 64px; padding: 5px 8px; border-radius: 8px; border: 0.5px solid #ccc; background: white; color: #1a1a1a; font-size: 14px; font-weight: 500; }
+  .fee-result { font-size: 12px; color: #666; flex: 1; }
+  .fee-result span { font-weight: 500; color: #A32D2D; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 1rem; flex-wrap: wrap; }
+  .tab { padding: 8px 16px; border-radius: 8px; border: 0.5px solid #ccc; font-size: 13px; cursor: pointer; background: transparent; color: #666; transition: all 0.15s; }
+  .tab:hover { background: #f0f0ee; }
+  .tab.active { background: #f0f0ee; color: #1a1a1a; font-weight: 500; border-color: #999; }
+  .scenario-note { font-size: 11px; color: #666; margin-bottom: 1rem; padding: 8px 12px; background: #efefed; border-radius: 8px; line-height: 1.5; }
+  .input-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  .input-block { display: flex; flex-direction: column; gap: 5px; }
+  .input-block label { font-size: 11px; color: #888; }
+  .input-block input[type=number] { padding: 8px 10px; border-radius: 8px; border: 0.5px solid #ccc; background: white; color: #1a1a1a; font-size: 14px; font-weight: 500; width: 100%; }
+  .input-block input:disabled { opacity: 0.35; }
+  .slider-block { margin-bottom: 1.5rem; }
+  .slider-row { display: flex; align-items: center; gap: 14px; }
+  .slider-row label { font-size: 13px; color: #666; min-width: 100px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #1a1a1a; }
+  .slider-row .val { font-size: 18px; font-weight: 500; min-width: 28px; color: #1a1a1a; }
+  .pedidos-note { font-size: 11px; color: #999; margin-top: 6px; }
+  .result-box { background: #efefed; border-radius: 12px; padding: 18px 20px; margin-bottom: 1.5rem; }
+  .result-label { font-size: 13px; color: #666; margin-bottom: 12px; }
+  .result-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
+  .r-item { background: white; border: 0.5px solid #e0e0de; border-radius: 8px; padding: 12px 14px; }
+  .r-item .lbl { font-size: 11px; color: #888; margin-bottom: 3px; }
+  .r-item .num { font-size: 19px; font-weight: 500; color: #1a1a1a; }
+  .r-item .num.green { color: #3B6D11; }
+  .divider { border: none; border-top: 0.5px solid #ddd; margin: 1.5rem 0; }
+  .compare-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
+  .c-card { border: 0.5px solid #e0e0de; border-radius: 12px; padding: 14px; background: white; }
+  .c-card.winner { border: 2px solid #1D9E75; }
+  .c-title { font-size: 13px; font-weight: 500; color: #1a1a1a; margin-bottom: 12px; }
+  .c-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: #888; padding: 5px 0; border-bottom: 0.5px solid #f0f0ee; gap: 6px; }
+  .c-row:last-child { border: none; }
+  .c-row .lbl { flex: 1; line-height: 1.3; }
+  .c-row .v { font-weight: 500; color: #1a1a1a; white-space: nowrap; }
+  .c-row .v.green { color: #3B6D11; }
+  .c-row .v.red { color: #A32D2D; }
+  .c-row .v.blue { color: #185FA5; }
+  .c-row.total { padding-top: 10px; margin-top: 2px; border-top: 0.5px solid #ddd; border-bottom: none; }
+  .c-row.total .lbl { font-weight: 500; color: #1a1a1a; font-size: 13px; }
+  .c-row.total .v { color: #3B6D11; font-size: 15px; }
+  .section-divider { border: none; border-top: 0.5px solid #f0f0ee; margin: 6px 0; }
+  .pros-cons { margin-top: 10px; border-top: 0.5px solid #f0f0ee; padding-top: 10px; }
+  .pc-section { margin-bottom: 8px; }
+  .pc-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+  .pc-label.pro { color: #3B6D11; }
+  .pc-label.con { color: #A32D2D; }
+  .pc-item { display: flex; gap: 5px; font-size: 11px; color: #666; line-height: 1.4; margin-bottom: 4px; }
+  .pc-dot { flex-shrink: 0; margin-top: 4px; width: 6px; height: 6px; border-radius: 50%; }
+  .pc-dot.pro { background: #3B6D11; }
+  .pc-dot.con { background: #A32D2D; }
+  .disclaimer { margin-top: 10px; background: #E6F1FB; border-radius: 6px; padding: 8px 10px; }
+  .disclaimer-text { font-size: 10px; color: #185FA5; line-height: 1.5; }
+  .empty-state { font-size: 12px; color: #bbb; font-style: italic; padding: 8px 0; }
+  .badge { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 6px; margin-bottom: 8px; }
+  .badge.green { background: #E1F5EE; color: #0F6E56; }
+  .badge.gray { background: #f0f0ee; color: #888; }
+  .btn-row { display: flex; gap: 10px; margin-bottom: 1.5rem; }
+  .btn { padding: 8px 16px; border-radius: 8px; border: 0.5px solid #ccc; font-size: 13px; cursor: pointer; background: transparent; color: #1a1a1a; }
+  .btn:hover { background: #f0f0ee; }
+  .btn.primary { background: #e8f4ee; color: #0F6E56; border-color: #9FE1CB; }
+  .btn.primary:hover { background: #d4ecdf; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Simulador de Escenarios — Mealstar</h1>
+  <p class="subtitle">Configura precios por escenario y compara ganancia neta</p>
+
+  <div class="section-title">Fees de plataforma</div>
+  <div class="global-bar">
+    <label>% fees sobre precio del producto</label>
+    <input type="number" id="inp-comision" value="15.5" min="0" max="100" step="0.1" oninput="recalc()">
+    <div class="fee-result" id="fee-result">Sobre $160 = <span>-$25</span></div>
+  </div>
+
+  <div class="section-title">Escenario activo</div>
+  <div class="tabs">
+    <button class="tab active" onclick="setScenario(0)">App + promo $1</button>
+    <button class="tab" onclick="setScenario(1)">App sin promo</button>
+    <button class="tab" onclick="setScenario(2)">Llamada / WhatsApp</button>
+  </div>
+
+  <div class="scenario-note" id="scenario-note"></div>
+
+  <div class="input-grid">
+    <div class="input-block">
+      <label>Precio producto en app ($)</label>
+      <input type="number" id="inp-precio" value="160" min="1" oninput="recalc()">
+    </div>
+    <div class="input-block">
+      <label>Costo de envío al cliente ($)</label>
+      <input type="number" id="inp-envio-cliente" value="1" min="0" oninput="recalc()">
+    </div>
+    <div class="input-block" id="deposito-block">
+      <label id="deposito-label">Envío que deposita Mealstar ($)</label>
+      <input type="number" id="inp-deposito" value="40" min="0" oninput="recalc()">
+    </div>
+  </div>
+
+  <div class="slider-block">
+    <div class="slider-row">
+      <label>Pedidos / día</label>
+      <input type="range" min="1" max="100" step="1" value="30" id="pedidos-slider">
+      <span class="val" id="pedidos-val">30</span>
+    </div>
+    <div class="pedidos-note" id="pedidos-note">= 210 pedidos en la semana</div>
+  </div>
+
+  <div class="result-box">
+    <div class="result-label" id="result-label">Resultados — App + promo $1</div>
+    <div class="result-grid">
+      <div class="r-item"><div class="lbl">Cliente paga / pedido</div><div class="num" id="r-cliente">-</div></div>
+      <div class="r-item"><div class="lbl">Ganancia neta / pedido</div><div class="num green" id="r-neta">-</div></div>
+      <div class="r-item"><div class="lbl">Ganancia total semana</div><div class="num green" id="r-semana">-</div></div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn primary" onclick="saveScenario()">Guardar escenario ↓</button>
+    <button class="btn" onclick="clearAll()">Limpiar todo</button>
+  </div>
+
+  <hr class="divider">
+
+  <div class="section-title">Comparación guardada</div>
+  <div class="compare-grid" id="compare-grid">
+    <div class="c-card" id="slot-0"><div class="empty-state">Guarda "App + promo $1"</div></div>
+    <div class="c-card" id="slot-1"><div class="empty-state">Guarda "App sin promo"</div></div>
+    <div class="c-card" id="slot-2"><div class="empty-state">Guarda "Llamada / WhatsApp"</div></div>
+  </div>
+
+</div>
+
+<script>
+const scenarioMeta = [
+  {
+    name: 'App + promo $1',
+    note: 'El cliente paga $1 de envío. Mealstar cubre el resto del costo de envío y lo deposita al restaurante al final de la semana.',
+    defaultPrecio: 160, defaultEnvioCliente: 1, defaultDeposito: 40,
+    isPromo: true, isLlamada: false,
+    pros: [], cons: [], disclaimer: true
+  },
+  {
+    name: 'App sin promo',
+    note: 'El cliente paga el envío completo. Se descuentan los fees de plataforma sobre el precio del producto, y el restaurante paga al repartidor.',
+    defaultPrecio: 160, defaultEnvioCliente: 40, defaultDeposito: 40,
+    isPromo: false, isLlamada: false,
+    pros: [
+      'Pago con tarjeta, sin transferencias ni cuentas CLABE',
+      'Sin marcar al repartidor ni manejar efectivo',
+      'Todos los datos del pedido en la orden, listo para enviar',
+      'Sin contestar direcciones por WhatsApp'
+    ],
+    cons: ['Sale $20 más caro para el cliente vs llamada'],
+    disclaimer: false
+  },
+  {
+    name: 'Llamada / WhatsApp',
+    note: 'Precio directo al cliente. Sin fees de plataforma, pero el restaurante gestiona todo manualmente.',
+    defaultPrecio: 140, defaultEnvioCliente: 40, defaultDeposito: 40,
+    isPromo: false, isLlamada: true,
+    pros: ['Sale $20 más barato para el cliente vs app sin promo'],
+    cons: [
+      'Cliente tiene que transferir o pasar cuenta CLABE, da más weba',
+      'O darle el dinero al repartidor — manejo de efectivo',
+      'Hay que dar la orden manualmente al repartidor por WhatsApp',
+      'Hay que estar al pendiente de WhatsApp a cada rato contestando'
+    ],
+    disclaimer: false
+  }
+];
+
+let current = 0;
+let pedidos = 30;
+const saved = [null, null, null];
+
+function getPct() { return parseFloat(document.getElementById('inp-comision').value) / 100 || 0; }
+function getInputs() {
+  return {
+    precio: parseFloat(document.getElementById('inp-precio').value) || 0,
+    envioCliente: parseFloat(document.getElementById('inp-envio-cliente').value) || 0,
+    deposito: parseFloat(document.getElementById('inp-deposito').value) || 0,
+  };
+}
+
+function calcAll(precio, envioCliente, deposito, meta, pct) {
+  const clientePaga = precio + envioCliente;
+  const fees = Math.round(precio * pct);
+  if (meta.isLlamada) {
+    return { clientePaga, fees: 0, neta: precio };
+  } else if (meta.isPromo) {
+    return { clientePaga, fees, neta: precio - fees + deposito };
+  } else {
+    return { clientePaga, fees, neta: precio - fees - deposito };
+  }
+}
+
+function setScenario(i) {
+  current = i;
+  document.querySelectorAll('.tab').forEach((t, idx) => {
+    if (idx < 3) t.classList.toggle('active', idx === i);
+  });
+  const meta = scenarioMeta[i];
+  document.getElementById('inp-precio').value = meta.defaultPrecio;
+  document.getElementById('inp-envio-cliente').value = meta.defaultEnvioCliente;
+  document.getElementById('inp-deposito').value = meta.defaultDeposito;
+  document.getElementById('deposito-label').textContent = meta.isPromo ? 'Envío que deposita Mealstar ($)' : 'Pago al repartidor ($)';
+  document.getElementById('inp-deposito').disabled = false;
+  document.getElementById('scenario-note').textContent = meta.note;
+  recalc();
+}
+
+function recalc() {
+  const meta = scenarioMeta[current];
+  const { precio, envioCliente, deposito } = getInputs();
+  const pct = getPct();
+  const semana = pedidos * 7;
+  const { clientePaga, fees, neta } = calcAll(precio, envioCliente, deposito, meta, pct);
+
+  document.getElementById('pedidos-val').textContent = pedidos;
+  document.getElementById('pedidos-note').textContent = '= ' + semana + ' pedidos en la semana';
+  document.getElementById('result-label').textContent = 'Resultados — ' + meta.name;
+  document.getElementById('r-cliente').textContent = '$' + clientePaga;
+  document.getElementById('r-neta').textContent = '$' + neta;
+  document.getElementById('r-semana').textContent = '$' + (semana * neta).toLocaleString();
+  document.getElementById('fee-result').innerHTML = 'Sobre $' + precio + ' = <span>-$' + fees + '</span>';
+}
+
+function row(label, val, cls) {
+  return '<div class="c-row"><span class="lbl">' + label + '</span><span class="v ' + (cls||'') + '">' + val + '</span></div>';
+}
+
+function buildCard(s, i) {
+  const meta = scenarioMeta[i];
+  const filledSlots = saved.filter(Boolean);
+  const maxNeta = filledSlots.length ? Math.max(...filledSlots.map(x => x.neta)) : null;
+  const isWinner = filledSlots.length > 1 && s.neta === maxNeta;
+
+  let rows = '';
+  rows += row('Precio del producto', '$' + s.precio, '');
+  rows += row('Costo de envío al cliente', '$' + s.envioCliente, '');
+  rows += row('Cliente paga en total', '$' + s.clientePaga, '');
+  if (!meta.isLlamada) {
+    rows += row('Fees de plataforma (' + s.pct + '%)', '-$' + s.fees, 'red');
+  }
+  if (meta.isPromo) {
+    rows += row('Envío Mealstar deposita +', '+$' + s.deposito, 'blue');
+  } else {
+    rows += row('Pago al repartidor', '-$' + s.deposito, 'red');
+  }
+  rows += '<div class="section-divider"></div>';
+  rows += '<div class="c-row total"><span class="lbl">Neto / pedido</span><span class="v green">$' + s.neta + '</span></div>';
+  rows += row('Pedidos / día', s.pedidosDia, '');
+  rows += '<div class="c-row"><span class="lbl">Total semana</span><span class="v green" style="font-size:14px">$' + s.total.toLocaleString() + '</span></div>';
+
+  let pcHtml = '';
+  if (meta.pros.length || meta.cons.length || meta.disclaimer) {
+    pcHtml = '<div class="pros-cons">';
+    if (meta.pros.length) {
+      pcHtml += '<div class="pc-section"><div class="pc-label pro">Pros</div>';
+      meta.pros.forEach(p => pcHtml += '<div class="pc-item"><div class="pc-dot pro"></div><span>' + p + '</span></div>');
+      pcHtml += '</div>';
+    }
+    if (meta.cons.length) {
+      pcHtml += '<div class="pc-section"><div class="pc-label con">Cons</div>';
+      meta.cons.forEach(c => pcHtml += '<div class="pc-item"><div class="pc-dot con"></div><span>' + c + '</span></div>');
+      pcHtml += '</div>';
+    }
+    if (meta.disclaimer) {
+      pcHtml += '<div class="disclaimer"><div class="disclaimer-text">⚠️ El depósito del envío lo realiza Mealstar al final de cada semana, por el tiempo que dure la promoción. Sujeto a vigencia.</div></div>';
+    }
+    pcHtml += '</div>';
+  }
+
+  return '<div class="badge ' + (isWinner ? 'green' : 'gray') + '">' + (isWinner ? 'Mejor opción' : meta.name.split(' ')[0]) + '</div>' +
+    '<div class="c-title">' + s.name + '</div>' + rows + pcHtml;
+}
+
+function saveScenario() {
+  const meta = scenarioMeta[current];
+  const { precio, envioCliente, deposito } = getInputs();
+  const pct = getPct();
+  const semana = pedidos * 7;
+  const { clientePaga, fees, neta } = calcAll(precio, envioCliente, deposito, meta, pct);
+  saved[current] = {
+    name: meta.name, pedidosDia: pedidos, semana,
+    clientePaga, fees, neta, total: semana * neta,
+    precio, envioCliente, deposito,
+    pct: (pct * 100).toFixed(1)
+  };
+  renderCompare();
+}
+
+function renderCompare() {
+  saved.forEach((s, i) => {
+    const el = document.getElementById('slot-' + i);
+    if (!s) {
+      el.className = 'c-card';
+      el.innerHTML = '<div class="empty-state">Guarda "' + scenarioMeta[i].name + '"</div>';
+      return;
+    }
+    const filledSlots = saved.filter(Boolean);
+    const maxNeta = Math.max(...filledSlots.map(x => x.neta));
+    const isWinner = filledSlots.length > 1 && s.neta === maxNeta;
+    el.className = 'c-card' + (isWinner ? ' winner' : '');
+    el.innerHTML = buildCard(s, i);
+  });
+}
+
+function clearAll() {
+  saved.fill(null);
+  renderCompare();
+}
+
+document.getElementById('pedidos-slider').addEventListener('input', function() {
+  pedidos = parseInt(this.value);
+  recalc();
+});
+
+setScenario(0);
+</script>
+</body>
+</html>
